@@ -1,0 +1,68 @@
+name: Metadata action branch, tag, and SHA repro
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/repro.yml
+
+permissions:
+  contents: read
+
+jobs:
+  metadata:
+    name: ${{ matrix.case }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - case: branch
+            ref: repro-input
+            expected-tag: example/repro:repro-input
+          - case: tag
+            ref: v0.0.1
+            expected-tag: example/repro:v0.0.1
+          - case: sha
+            ref: 374978565b5476f435282d53b130afb8553e8954
+            expected-tag: example/repro:sha-3749785
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ matrix.ref }}
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Show Git state
+        env:
+          INPUT_REF: ${{ matrix.ref }}
+          EXPECTED_SHA: 374978565b5476f435282d53b130afb8553e8954
+        run: |
+          printf 'Input ref: %s\n' "$INPUT_REF"
+          git rev-parse --is-shallow-repository
+          git show -s --format='%H%n%D' HEAD
+          git for-each-ref --format='%(refname)'
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+
+      - name: Generate metadata
+        id: metadata
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302 # v6.2.0
+        with:
+          context: git
+          images: example/repro
+          flavor: latest=false
+          tags: |
+            type=ref,event=branch,enable=${{ matrix.case == 'branch' }}
+            type=ref,event=tag,enable=${{ matrix.case == 'tag' }}
+            type=sha,prefix=sha-,format=short,enable=${{ matrix.case == 'sha' }}
+
+      - name: Verify generated tag
+        env:
+          ACTUAL_TAG: ${{ steps.metadata.outputs.tags }}
+          EXPECTED_TAG: ${{ matrix.expected-tag }}
+        run: |
+          printf 'Expected: %s\nActual: %s\n' "$EXPECTED_TAG" "$ACTUAL_TAG"
+          test "$ACTUAL_TAG" = "$EXPECTED_TAG"

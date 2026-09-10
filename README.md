@@ -16,6 +16,16 @@ All three refs point to the same public commit, `374978565b5476f435282d53b130afb
 
 Each job prints the input ref, shallow status, HEAD decoration, and available Git refs. It verifies that checkout selected the shared commit before invoking metadata-action, then verifies the generated tag if the action succeeds. A failure in one job does not cancel the other scenarios.
 
+## Observed results
+
+[Completed workflow run](https://github.com/alexaka1/repro-docker--metadata-action-552/actions/runs/34451938722)
+
+| Case | Checkout | Metadata generation |
+| --- | --- | --- |
+| [Branch](https://github.com/alexaka1/repro-docker--metadata-action-552/actions/runs/34451938722/job/102789429143) | Passed | Passed |
+| [Tag](https://github.com/alexaka1/repro-docker--metadata-action-552/actions/runs/34451938722/job/102789429246) | Passed | Passed |
+| [SHA](https://github.com/alexaka1/repro-docker--metadata-action-552/actions/runs/34451938722/job/102789429391) | Passed | Failed with `Cannot infer ref from detached HEAD` |
+
 ## Run it
 
 Run **Metadata action branch, tag, and SHA repro** from the Actions tab, or use:
